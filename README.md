@@ -3,7 +3,7 @@
 > Play chess with a colleague—right from your DMs. No apps. No logins. Just pure ASCII chess.
 
 <p align="center">
-  <img src="https://github.com/dvelton/dm-chess/screenshot1.png" alt="DM-chess Screenshot 1" width="600">
+  <img src="screenshot1.png" alt="DM-chess Screenshot 1" width="600">
 </p>
 
 ---
@@ -29,17 +29,17 @@ Just type and play.
 <summary>📸 Screenshots (click to expand)</summary>
 
 <p align="center">
-  <img src="https://github.com/dvelton/dm-chess/screenshot1.png" alt="Game Start" width="600"><br>
+  <img src="screenshot1.png" alt="Game Start" width="600"><br>
   <em>Game Start: Board appears in your DM</em>
 </p>
 
 <p align="center">
-  <img src="https://github.com/dvelton/dm-chess/screenshot2.png" alt="Move Response" width="600"><br>
+  <img src="screenshot2.png" alt="Move Response" width="600"><br>
   <em>Move submitted and board updated</em>
 </p>
 
 <p align="center">
-  <img src="https://github.com/dvelton/dm-chess/screenshot3.png" alt="Ongoing Match" width="600"><br>
+  <img src="screenshot3.png" alt="Ongoing Match" width="600"><br>
   <em>Simple, ongoing gameplay in plain text</em>
 </p>
 
