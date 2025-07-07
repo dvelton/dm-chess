@@ -86,6 +86,16 @@
   @apply select-none cursor-grab active:cursor-grabbing;
 }
 
+/* White chess pieces need a black shadow to be visible on light squares */
+.chess-piece .text-white {
+  text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Black chess pieces need a white shadow to be visible on dark squares */
+.chess-piece .text-black {
+  text-shadow: 0px 0px 2px rgba(255, 255, 255, 0.8);
+}
+
 /* Styles for ASCII representation */
 .ascii-board {
   @apply font-mono text-foreground whitespace-pre bg-card p-4 border rounded-md shadow-sm;
@@ -119,4 +129,17 @@
 
 .controls-container {
   @apply space-y-4 mt-6;
+}
+
+/* Move history styles */
+.move-history-item {
+  @apply px-2 py-1 hover:bg-muted/50 rounded cursor-pointer;
+}
+
+.move-history-item.active {
+  @apply bg-accent/20 font-medium;
+}
+
+.move-number {
+  @apply text-muted-foreground;
 }

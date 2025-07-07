@@ -20,8 +20,8 @@
 
 ## Essential Features
 1. **Interactive Chess Board**
-   - What: Visual chess board with draggable pieces
-   - Why: Provides intuitive interface for move planning
+   - What: Visual chess board with Unicode chess pieces
+   - Why: Provides intuitive interface for move planning with recognizable pieces
    - Success: Players can make legal moves and see the result visually
 
 2. **ASCII Board Representation**
@@ -43,6 +43,11 @@
    - What: Track check, checkmate, and draw conditions
    - Why: Provides game progression feedback
    - Success: Players are notified of significant game state changes
+
+6. **Move History**
+   - What: Record and display all moves made during the game
+   - Why: Allows players to review the game progression
+   - Success: Players can see previous moves and replay the game to any point
 
 ## Design Direction
 
@@ -89,10 +94,10 @@
 - **Contextual Appropriateness**: Restrained animations that don't distract from gameplay
 
 ### UI Elements & Component Selection
-- **Component Usage**: Cards for board and controls, buttons for actions, dialog for game status
+- **Component Usage**: Cards for board and controls, tabs for organization, buttons for actions
 - **Component Customization**: Subtle shadows and borders for separation of concerns
 - **Component States**: Clear hover and active states for interactive elements
-- **Icon Selection**: Chess-themed icons where appropriate, standard UI icons elsewhere
+- **Icon Selection**: Chess Unicode symbols for pieces, standard UI icons elsewhere
 - **Component Hierarchy**: Board (primary), controls (secondary), information (tertiary)
 - **Spacing System**: Consistent spacing using Tailwind's scale
 - **Mobile Adaptation**: Vertical stacking of components with appropriately sized touch targets
@@ -112,13 +117,17 @@
 - **Potential Obstacles**: Complex chess rules (en passant, castling, promotion)
 - **Edge Case Handling**: Clear visual indicators for special moves
 - **Technical Constraints**: ASCII representation limitations for complex states
+- **Move History Replay**: Ensuring accurate recreation of board states when replaying moves
 
 ## Implementation Considerations
-- **Scalability Needs**: Potential for game history tracking
-- **Testing Focus**: Verify all chess rules are correctly implemented
-- **Critical Questions**: How to handle game continuation if ASCII is accidentally modified?
+- **Scalability Needs**: Potential for advanced game analytics and export options
+- **Testing Focus**: Verify all chess rules and move history functionality
+- **Critical Questions**: 
+  - How to handle game continuation if ASCII is accidentally modified?
+  - How to ensure move history accurately recreates previous game states?
 
 ## Reflection
 - This approach uniquely balances visual appeal with practical text-based sharing
-- We've assumed users have basic chess knowledge - should consider adding help
-- Adding minimal animations for piece movement would make the experience exceptional
+- Unicode chess symbols provide a more intuitive visual representation while remaining text-based
+- Move history feature enhances the gaming experience by allowing players to review and learn from previous moves
+- The combination of visual board with move review creates a more complete chess experience

@@ -1,19 +1,26 @@
 import { useState } from 'react';
 import { Board, GameState, Piece, Position, isValidMove, makeMove } from '@/lib/chess';
 import { cn } from '@/lib/utils';
-import { PawnTopFill, RookFill, KnightFill, BishopFill, QueenFill, KingFill } from '@phosphor-icons/react';
 
 interface ChessBoardProps {
   gameState: GameState;
   onMove: (newState: GameState) => void;
+  viewMode?: boolean;
+  displayState?: GameState;
 }
 
-export default function ChessBoard({ gameState, onMove }: ChessBoardProps) {
+export default function ChessBoard({ gameState, onMove, viewMode = false, displayState }: ChessBoardProps) {
   const [selectedSquare, setSelectedSquare] = useState<Position | null>(null);
   const [hoveredSquare, setHoveredSquare] = useState<Position | null>(null);
+  
+  // Use displayState if provided (for move history replay), otherwise use gameState
+  const boardToDisplay = displayState || gameState;
 
   // Handle square selection for moving pieces
   const handleSquareClick = (row: number, col: number) => {
+    // Don't allow moves in view mode
+    if (viewMode) return;
+    
     const clickedPosition = { row, col };
     
     // If a square is already selected
@@ -35,40 +42,52 @@ export default function ChessBoard({ gameState, onMove }: ChessBoardProps) {
     }
   };
 
-  // Render a chess piece based on its type and color
+  // Render a chess piece based on its type and color using Unicode characters
   const renderPiece = (piece: Piece | null) => {
     if (!piece) return null;
     
     const pieceColor = piece.color === 'w' ? 'text-white' : 'text-black';
-    const size = 36;
-    const weight = 'fill';
     
-    switch (piece.type) {
-      case 'p':
-        return <PawnTopFill className={pieceColor} size={size} weight={weight} />;
-      case 'r':
-        return <RookFill className={pieceColor} size={size} weight={weight} />;
-      case 'n':
-        return <KnightFill className={pieceColor} size={size} weight={weight} />;
-      case 'b':
-        return <BishopFill className={pieceColor} size={size} weight={weight} />;
-      case 'q':
-        return <QueenFill className={pieceColor} size={size} weight={weight} />;
-      case 'k':
-        return <KingFill className={pieceColor} size={size} weight={weight} />;
-      default:
-        return null;
-    }
+    // Unicode chess pieces
+    const unicodePieces = {
+      w: {
+        p: '♙', // white pawn
+        r: '♖', // white rook
+        n: '♘', // white knight
+        b: '♗', // white bishop
+        q: '♕', // white queen
+        k: '♔', // white king
+      },
+      b: {
+        p: '♟', // black pawn
+        r: '♜', // black rook
+        n: '♞', // black knight
+        b: '♝', // black bishop
+        q: '♛', // black queen
+        k: '♚', // black king
+      }
+    };
+    
+    return (
+      <div className={cn(
+        "text-4xl", 
+        pieceColor,
+        "select-none cursor-grab active:cursor-grabbing",
+        viewMode && "cursor-default"
+      )}>
+        {unicodePieces[piece.color][piece.type]}
+      </div>
+    );
   };
   
   // Check if a square is valid for the selected piece to move to
   const isValidMoveTarget = (row: number, col: number) => {
-    return selectedSquare && isValidMove(gameState, selectedSquare, { row, col });
+    return !viewMode && selectedSquare && isValidMove(gameState, selectedSquare, { row, col });
   };
 
   // Check if a square was involved in the last move
   const isLastMove = (row: number, col: number) => {
-    const lastMove = gameState.lastMove;
+    const lastMove = boardToDisplay.lastMove;
     if (!lastMove) return false;
     
     return (
@@ -80,13 +99,13 @@ export default function ChessBoard({ gameState, onMove }: ChessBoardProps) {
   return (
     <div className="board-container">
       <div className="grid grid-cols-8 grid-rows-8 h-full w-full border border-border rounded overflow-hidden">
-        {gameState.board.map((row, rowIndex) => (
+        {boardToDisplay.board.map((row, rowIndex) => (
           row.map((piece, colIndex) => {
             const isLightSquare = (rowIndex + colIndex) % 2 === 0;
-            const isSelected = selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex;
+            const isSelected = !viewMode && selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex;
             const isValidTarget = isValidMoveTarget(rowIndex, colIndex);
             const isHighlighted = isLastMove(rowIndex, colIndex);
-            const isHovered = hoveredSquare?.row === rowIndex && hoveredSquare?.col === colIndex;
+            const isHovered = !viewMode && hoveredSquare?.row === rowIndex && hoveredSquare?.col === colIndex;
             
             return (
               <div
@@ -97,11 +116,12 @@ export default function ChessBoard({ gameState, onMove }: ChessBoardProps) {
                   isSelected && "ring-2 ring-accent ring-inset",
                   isValidTarget && "bg-accent/25",
                   isHighlighted && "ring-1 ring-accent/70 ring-inset",
-                  isHovered && "brightness-110"
+                  isHovered && "brightness-110",
+                  viewMode ? "cursor-default" : ""
                 )}
                 onClick={() => handleSquareClick(rowIndex, colIndex)}
-                onMouseEnter={() => setHoveredSquare({ row: rowIndex, col: colIndex })}
-                onMouseLeave={() => setHoveredSquare(null)}
+                onMouseEnter={() => !viewMode && setHoveredSquare({ row: rowIndex, col: colIndex })}
+                onMouseLeave={() => !viewMode && setHoveredSquare(null)}
               >
                 <div className={cn("chess-piece", piece && "z-10")}>
                   {renderPiece(piece)}
