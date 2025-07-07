@@ -25,8 +25,7 @@ Just type and play.
 
 ---
 
-<details>
-<summary>📸 Screenshots (click to expand)</summary>
+## 📸 Screenshots 
 
 <p align="center">
   <img src="screenshot1.png" alt="Game Start" width="600"><br>
