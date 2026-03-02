@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Board, GameState, Piece, Position, isValidMove, makeMove } from '@/lib/chess';
+import { GameState, Piece, Position, isValidMove, makeMove, getValidMoves } from '@/lib/chess';
 import { cn } from '@/lib/utils';
 
 interface ChessBoardProps {

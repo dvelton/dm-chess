@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { INITIAL_GAME_STATE, GameState } from '@/lib/chess';
+import { GameState } from '@/lib/chess';
 import { ArrowClockwise, Trophy, Flag } from '@phosphor-icons/react';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,7 @@ interface GameControlsProps {
 }
 
 export default function GameControls({ gameState, onReset }: GameControlsProps) {
-  const { turn, check, checkmate, stalemate, capturedPieces } = gameState;
+  const { turn, check, checkmate, stalemate, isDraw, capturedPieces } = gameState;
   
   const renderGameStatus = () => {
     if (checkmate) {
@@ -22,11 +22,11 @@ export default function GameControls({ gameState, onReset }: GameControlsProps) 
       );
     }
     
-    if (stalemate) {
+    if (stalemate || isDraw) {
       return (
         <div className="flex items-center text-lg">
           <Flag className="mr-2" weight="fill" />
-          <span className="font-semibold">Game drawn by stalemate</span>
+          <span className="font-semibold">{stalemate ? 'Game drawn by stalemate' : 'Game drawn'}</span>
         </div>
       );
     }

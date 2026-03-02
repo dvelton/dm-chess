@@ -2,16 +2,18 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatGameState, parseGameState, GameState } from '@/lib/chess';
-import { Copy, PasteClipboard, CheckCircle } from '@phosphor-icons/react';
+import { Copy, ClipboardText, CheckCircle, Link } from '@phosphor-icons/react';
 
 interface AsciiBoardProps {
   gameState: GameState;
   onImport: (gameState: GameState) => void;
+  onShareLink?: () => Promise<string>;
 }
 
-export default function AsciiBoard({ gameState, onImport }: AsciiBoardProps) {
+export default function AsciiBoard({ gameState, onImport, onShareLink }: AsciiBoardProps) {
   const [asciiText, setAsciiText] = useState<string>(formatGameState(gameState));
   const [copied, setCopied] = useState<boolean>(false);
+  const [linkCopied, setLinkCopied] = useState<boolean>(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<boolean>(false);
   
@@ -76,7 +78,7 @@ export default function AsciiBoard({ gameState, onImport }: AsciiBoardProps) {
             size="sm"
             variant={importSuccess ? "outline" : "default"}
           >
-            {importSuccess ? <CheckCircle className="mr-1" /> : <PasteClipboard className="mr-1" />}
+            {importSuccess ? <CheckCircle className="mr-1" /> : <ClipboardText className="mr-1" />}
             {importSuccess ? "Loaded!" : "Load Game"}
           </Button>
         </div>
@@ -96,6 +98,27 @@ export default function AsciiBoard({ gameState, onImport }: AsciiBoardProps) {
       <div className="text-sm text-muted-foreground">
         <p>Copy this text and send it to your opponent in Slack. To continue a game, paste the game text from Slack and click "Load Game".</p>
       </div>
+
+      {onShareLink && (
+        <div className="pt-2 border-t">
+          <Button
+            onClick={async () => {
+              await onShareLink();
+              setLinkCopied(true);
+              setTimeout(() => setLinkCopied(false), 2000);
+            }}
+            size="sm"
+            variant="outline"
+            className="w-full"
+          >
+            {linkCopied ? <CheckCircle className="mr-1" /> : <Link className="mr-1" />}
+            {linkCopied ? "Link Copied!" : "Copy Share Link"}
+          </Button>
+          <p className="text-xs text-muted-foreground mt-1">
+            Share a direct link — your opponent can open it to load the game instantly.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

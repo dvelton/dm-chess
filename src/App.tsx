@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useKV } from '@github/spark/hooks';
-import { INITIAL_GAME_STATE, GameState } from '@/lib/chess';
+import { useState, useEffect, useCallback } from 'react';
+import { createInitialGameState, GameState, getStateAtMove, deserializeFromUrl, serializeForUrl } from '@/lib/chess';
 import ChessBoard from '@/components/ChessBoard';
 import AsciiBoard from '@/components/AsciiBoard';
 import GameControls from '@/components/GameControls';
@@ -9,117 +8,82 @@ import HelpDialog from '@/components/HelpDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 
-function App() {
-  // Use KV store to persist the game state between sessions
-  const [persistedState, setPersistedState] = useKV<GameState | null>(
-    'slack-chess-game-state', 
-    null
-  );
-  
-  // Local state for current game
-  const [gameState, setGameState] = useState<GameState>(
-    persistedState || JSON.parse(JSON.stringify(INITIAL_GAME_STATE))
-  );
+// Try to load game from URL on initial render
+function loadFromUrl(): GameState | null {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const moves = params.get('moves');
+    if (moves) return deserializeFromUrl(moves);
+  } catch { /* ignore */ }
+  return null;
+}
 
-  // State for replay mode
+const STORAGE_KEY = 'dm-chess-game-state';
+
+function loadPersistedState(): GameState | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function persistState(state: GameState) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* ignore */ }
+}
+
+function App() {
+  const [gameState, setGameState] = useState<GameState>(() => {
+    return loadFromUrl() || loadPersistedState() || createInitialGameState();
+  });
+
   const [currentMoveIndex, setCurrentMoveIndex] = useState<number>(-1);
   const [replayState, setReplayState] = useState<GameState | null>(null);
-  
-  // Update both local state and persisted state
+
   const updateGameState = (newState: GameState) => {
     setGameState(newState);
-    setPersistedState(newState);
-    // When a new move is made, update the current move index to the latest
+    persistState(newState);
     setCurrentMoveIndex(newState.moveHistory.length);
   };
-  
-  // Reset the game to initial state
+
   const handleReset = () => {
-    const newState = JSON.parse(JSON.stringify(INITIAL_GAME_STATE));
+    const newState = createInitialGameState();
     updateGameState(newState);
     setCurrentMoveIndex(-1);
     setReplayState(null);
+    // Clear URL params
+    window.history.replaceState({}, '', window.location.pathname);
   };
-  
-  // Handle a move on the chess board
+
   const handleMove = (newState: GameState) => {
     updateGameState(newState);
   };
-  
-  // Import a game state from ASCII text
+
   const handleImport = (importedState: GameState) => {
     updateGameState(importedState);
     setCurrentMoveIndex(importedState.moveHistory.length);
   };
 
-  // Handle move history replay
   const handleReplayMove = (moveIndex: number) => {
     setCurrentMoveIndex(moveIndex);
-    
-    if (moveIndex <= 0) {
-      // If at the start, show initial board
-      setReplayState(JSON.parse(JSON.stringify(INITIAL_GAME_STATE)));
-      return;
-    }
-    
+
     if (moveIndex >= gameState.moveHistory.length) {
-      // If at the end, show current board
       setReplayState(null);
       return;
     }
-    
-    // Otherwise, reconstruct the board state up to this move
-    const replayGameState = JSON.parse(JSON.stringify(INITIAL_GAME_STATE));
-    
-    // Apply all moves up to the selected index
-    for (let i = 0; i < moveIndex; i++) {
-      const move = gameState.moveHistory[i];
-      const [from, to] = move.split('-');
-      
-      // Convert algebraic notation to positions
-      const fromCol = from.charCodeAt(0) - 'a'.charCodeAt(0);
-      const fromRow = 8 - parseInt(from[1]);
-      const toCol = to.charCodeAt(0) - 'a'.charCodeAt(0);
-      const toRow = 8 - parseInt(to[1]);
-      
-      const fromPos = { row: fromRow, col: fromCol };
-      const toPos = { row: toRow, col: toCol };
-      
-      // Apply move
-      const piece = replayGameState.board[fromRow][fromCol];
-      if (piece) {
-        // Record capture if there is one
-        const targetPiece = replayGameState.board[toRow][toCol];
-        if (targetPiece) {
-          replayGameState.capturedPieces[targetPiece.color].push(targetPiece.type);
-        }
-        
-        // Move the piece
-        replayGameState.board[toRow][toCol] = piece;
-        replayGameState.board[fromRow][fromCol] = null;
-        
-        // Handle pawn promotion (always to queen for simplicity)
-        if (piece.type === 'p') {
-          if ((piece.color === 'w' && toRow === 0) || (piece.color === 'b' && toRow === 7)) {
-            replayGameState.board[toRow][toCol] = { type: 'q', color: piece.color };
-          }
-        }
-        
-        // Record this move in the history
-        replayGameState.moveHistory.push(move);
-        
-        // Update last move for highlighting
-        replayGameState.lastMove = { from: fromPos, to: toPos };
-      }
-      
-      // Switch turns after each move
-      replayGameState.turn = replayGameState.turn === 'w' ? 'b' : 'w';
-    }
-    
-    setReplayState(replayGameState);
+
+    setReplayState(getStateAtMove(gameState.moveHistory, moveIndex));
   };
 
-  // When game state changes, exit replay mode
+  const handleShareLink = async () => {
+    const encoded = serializeForUrl(gameState);
+    const url = new URL(window.location.href);
+    url.search = encoded ? `?moves=${encoded}` : '';
+    try {
+      await navigator.clipboard.writeText(url.toString());
+    } catch { /* fallback: silent */ }
+    return url.toString();
+  };
+
   useEffect(() => {
     if (gameState.moveHistory.length <= currentMoveIndex) {
       setCurrentMoveIndex(gameState.moveHistory.length);
@@ -130,7 +94,7 @@ function App() {
   return (
     <div className="app-container min-h-screen py-8">
       <header className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Slack Chess</h1>
+        <h1 className="text-3xl font-bold text-foreground">DM-Chess</h1>
         <HelpDialog />
       </header>
       
@@ -172,6 +136,7 @@ function App() {
                   <AsciiBoard 
                     gameState={gameState}
                     onImport={handleImport}
+                    onShareLink={handleShareLink}
                   />
                 </CardContent>
               </Card>
@@ -223,7 +188,7 @@ function App() {
       </main>
       
       <footer className="mt-8 text-center text-sm text-muted-foreground">
-        <p>Slack Chess - Play chess in Slack without authentication or third-party services.</p>
+        <p>DM-Chess — play chess over DMs without accounts or third-party services.</p>
       </footer>
     </div>
   );

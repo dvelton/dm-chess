@@ -7,14 +7,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { QuestionCircle, Clipboard, ArrowsClockwise } from "@phosphor-icons/react";
+import { Question, Clipboard, ArrowsClockwise } from "@phosphor-icons/react";
 
 export default function HelpDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon">
-          <QuestionCircle size={24} />
+          <Question size={24} />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-xl">
