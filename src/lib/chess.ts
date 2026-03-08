@@ -181,6 +181,14 @@ export function isValidMove(gameState: GameState, from: Position, to: Position):
   return moves.some(m => m.to === toSq);
 }
 
+// Check if a move would be a pawn promotion
+export function isPromotionMove(gameState: GameState, from: Position, to: Position): boolean {
+  const piece = gameState.board[from.row][from.col];
+  if (!piece || piece.type !== 'p') return false;
+  const targetRow = piece.color === 'w' ? 0 : 7;
+  return to.row === targetRow && isValidMove(gameState, from, to);
+}
+
 // Get all valid moves for a piece at a position
 export function getValidMoves(gameState: GameState, from: Position): Position[] {
   const chess = gameStateToChess(gameState);
