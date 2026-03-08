@@ -5,6 +5,7 @@ import AsciiBoard from '@/components/AsciiBoard';
 import GameControls from '@/components/GameControls';
 import MoveHistory from '@/components/MoveHistory';
 import HelpDialog from '@/components/HelpDialog';
+import { useToast, ToastContainer } from '@/components/Toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -38,6 +39,27 @@ function App() {
 
   const [currentMoveIndex, setCurrentMoveIndex] = useState<number>(-1);
   const [replayState, setReplayState] = useState<GameState | null>(null);
+  const { toasts, showToast } = useToast();
+
+  // Build a share URL for the given game state
+  const buildShareUrl = useCallback((state: GameState): string => {
+    const encoded = serializeForUrl(state);
+    const url = new URL(window.location.href);
+    url.search = encoded ? `?moves=${encoded}` : '';
+    return url.toString();
+  }, []);
+
+  // Copy a share URL to clipboard, return it
+  const copyShareUrl = useCallback(async (state: GameState): Promise<string> => {
+    const url = buildShareUrl(state);
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('Share link copied to clipboard');
+    } catch {
+      showToast('Move made (clipboard unavailable)');
+    }
+    return url;
+  }, [buildShareUrl, showToast]);
 
   const updateGameState = (newState: GameState) => {
     setGameState(newState);
@@ -50,12 +72,12 @@ function App() {
     updateGameState(newState);
     setCurrentMoveIndex(-1);
     setReplayState(null);
-    // Clear URL params
     window.history.replaceState({}, '', window.location.pathname);
   };
 
-  const handleMove = (newState: GameState) => {
+  const handleMove = async (newState: GameState) => {
     updateGameState(newState);
+    await copyShareUrl(newState);
   };
 
   const handleImport = (importedState: GameState) => {
@@ -75,13 +97,7 @@ function App() {
   };
 
   const handleShareLink = async () => {
-    const encoded = serializeForUrl(gameState);
-    const url = new URL(window.location.href);
-    url.search = encoded ? `?moves=${encoded}` : '';
-    try {
-      await navigator.clipboard.writeText(url.toString());
-    } catch { /* fallback: silent */ }
-    return url.toString();
+    return await copyShareUrl(gameState);
   };
 
   useEffect(() => {
@@ -188,8 +204,10 @@ function App() {
       </main>
       
       <footer className="mt-8 text-center text-sm text-muted-foreground">
-        <p>DM-Chess — play chess over DMs without accounts or third-party services.</p>
+        <p>DM-Chess -- play chess over DMs without accounts or third-party services.</p>
       </footer>
+
+      <ToastContainer toasts={toasts} />
     </div>
   );
 }

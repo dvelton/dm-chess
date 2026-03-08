@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { GameState, Piece, Position, isValidMove, makeMove, getValidMoves } from '@/lib/chess';
+import { GameState, Piece, Position, PieceType, isValidMove, makeMove, getValidMoves, isPromotionMove } from '@/lib/chess';
 import { cn } from '@/lib/utils';
+import PromotionDialog from '@/components/PromotionDialog';
 
 interface ChessBoardProps {
   gameState: GameState;
@@ -12,6 +13,7 @@ interface ChessBoardProps {
 export default function ChessBoard({ gameState, onMove, viewMode = false, displayState }: ChessBoardProps) {
   const [selectedSquare, setSelectedSquare] = useState<Position | null>(null);
   const [hoveredSquare, setHoveredSquare] = useState<Position | null>(null);
+  const [pendingPromotion, setPendingPromotion] = useState<{ from: Position; to: Position } | null>(null);
   
   // Use displayState if provided (for move history replay), otherwise use gameState
   const boardToDisplay = displayState || gameState;
@@ -27,6 +29,11 @@ export default function ChessBoard({ gameState, onMove, viewMode = false, displa
     if (selectedSquare) {
       // Attempt to make a move
       if (isValidMove(gameState, selectedSquare, clickedPosition)) {
+        if (isPromotionMove(gameState, selectedSquare, clickedPosition)) {
+          setPendingPromotion({ from: selectedSquare, to: clickedPosition });
+          setSelectedSquare(null);
+          return;
+        }
         const newState = makeMove(gameState, selectedSquare, clickedPosition);
         onMove(newState);
       }
@@ -40,6 +47,13 @@ export default function ChessBoard({ gameState, onMove, viewMode = false, displa
         setSelectedSquare(clickedPosition);
       }
     }
+  };
+
+  const handlePromotionSelect = (pieceType: PieceType) => {
+    if (!pendingPromotion) return;
+    const newState = makeMove(gameState, pendingPromotion.from, pendingPromotion.to, pieceType);
+    onMove(newState);
+    setPendingPromotion(null);
   };
 
   // Render a chess piece based on its type and color using Unicode characters
@@ -97,52 +111,59 @@ export default function ChessBoard({ gameState, onMove, viewMode = false, displa
   };
 
   return (
-    <div className="board-container">
-      <div className="grid grid-cols-8 grid-rows-8 h-full w-full border border-border rounded overflow-hidden">
-        {boardToDisplay.board.map((row, rowIndex) => (
-          row.map((piece, colIndex) => {
-            const isLightSquare = (rowIndex + colIndex) % 2 === 0;
-            const isSelected = !viewMode && selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex;
-            const isValidTarget = isValidMoveTarget(rowIndex, colIndex);
-            const isHighlighted = isLastMove(rowIndex, colIndex);
-            const isHovered = !viewMode && hoveredSquare?.row === rowIndex && hoveredSquare?.col === colIndex;
-            
-            return (
-              <div
-                key={`${rowIndex}-${colIndex}`}
-                className={cn(
-                  "flex items-center justify-center relative",
-                  isLightSquare ? "chess-square-light" : "chess-square-dark",
-                  isSelected && "ring-2 ring-accent ring-inset",
-                  isValidTarget && "bg-accent/25",
-                  isHighlighted && "ring-1 ring-accent/70 ring-inset",
-                  isHovered && "brightness-110",
-                  viewMode ? "cursor-default" : ""
-                )}
-                onClick={() => handleSquareClick(rowIndex, colIndex)}
-                onMouseEnter={() => !viewMode && setHoveredSquare({ row: rowIndex, col: colIndex })}
-                onMouseLeave={() => !viewMode && setHoveredSquare(null)}
-              >
-                <div className={cn("chess-piece", piece && "z-10")}>
-                  {renderPiece(piece)}
+    <>
+      <div className="board-container">
+        <div className="grid grid-cols-8 grid-rows-8 h-full w-full border border-border rounded overflow-hidden">
+          {boardToDisplay.board.map((row, rowIndex) => (
+            row.map((piece, colIndex) => {
+              const isLightSquare = (rowIndex + colIndex) % 2 === 0;
+              const isSelected = !viewMode && selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex;
+              const isValidTarget = isValidMoveTarget(rowIndex, colIndex);
+              const isHighlighted = isLastMove(rowIndex, colIndex);
+              const isHovered = !viewMode && hoveredSquare?.row === rowIndex && hoveredSquare?.col === colIndex;
+              
+              return (
+                <div
+                  key={`${rowIndex}-${colIndex}`}
+                  className={cn(
+                    "flex items-center justify-center relative",
+                    isLightSquare ? "chess-square-light" : "chess-square-dark",
+                    isSelected && "ring-2 ring-accent ring-inset",
+                    isValidTarget && "bg-accent/25",
+                    isHighlighted && "ring-1 ring-accent/70 ring-inset",
+                    isHovered && "brightness-110",
+                    viewMode ? "cursor-default" : ""
+                  )}
+                  onClick={() => handleSquareClick(rowIndex, colIndex)}
+                  onMouseEnter={() => !viewMode && setHoveredSquare({ row: rowIndex, col: colIndex })}
+                  onMouseLeave={() => !viewMode && setHoveredSquare(null)}
+                >
+                  <div className={cn("chess-piece", piece && "z-10")}>
+                    {renderPiece(piece)}
+                  </div>
+                  
+                  {colIndex === 0 && (
+                    <div className="absolute left-1 top-0 text-xs opacity-70">
+                      {8 - rowIndex}
+                    </div>
+                  )}
+                  {rowIndex === 7 && (
+                    <div className="absolute bottom-0 right-1 text-xs opacity-70">
+                      {String.fromCharCode(97 + colIndex)}
+                    </div>
+                  )}
                 </div>
-                
-                {/* Coordinates on the edges of the board */}
-                {colIndex === 0 && (
-                  <div className="absolute left-1 top-0 text-xs opacity-70">
-                    {8 - rowIndex}
-                  </div>
-                )}
-                {rowIndex === 7 && (
-                  <div className="absolute bottom-0 right-1 text-xs opacity-70">
-                    {String.fromCharCode(97 + colIndex)}
-                  </div>
-                )}
-              </div>
-            );
-          })
-        ))}
+              );
+            })
+          ))}
+        </div>
       </div>
-    </div>
+
+      <PromotionDialog
+        open={pendingPromotion !== null}
+        color={gameState.turn}
+        onSelect={handlePromotionSelect}
+      />
+    </>
   );
 }
